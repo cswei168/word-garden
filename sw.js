@@ -1,5 +1,5 @@
-const CACHE='wordgarden-pwa-v2';
-const FILES=['./','index.html','style.css','app.js','install.js','install.html','manifest.webmanifest','words.json','LICENSE-ECDICT','icons/icon-180.png','icons/icon-192.png','icons/icon-512.png'];
+const CACHE='wordgarden-pwa-v3';
+const FILES=['./','index.html','style.css','app.js','auth-config.js','auth.js','privacy.html','install.js','install.html','manifest.webmanifest','words.json','LICENSE-ECDICT','icons/icon-180.png','icons/icon-192.png','icons/icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
 self.addEventListener('activate',e=>e.waitUntil((async()=>{for(const k of await caches.keys())if(k.startsWith('wordgarden-pwa-')&&k!==CACHE)await caches.delete(k);await self.clients.claim()})()));
 self.addEventListener('message',e=>{if(e.data==='SKIP_WAITING')self.skipWaiting()});

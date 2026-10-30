@@ -1,7 +1,7 @@
 'use strict';
-const $=s=>document.querySelector(s),today=()=>{let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`},key='wordgarden-v1';
+const $=s=>document.querySelector(s),today=()=>{let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};let key='wordgarden-v1';
 let state;try{state=JSON.parse(localStorage.getItem(key))}catch{}state=state||{days:90,records:{},daily:{}};let words=[],queue=[],total=0,done=0,review=false,current,shown=40,recording=null,stream=null,audioURL=null,missed=new Set();
-const save=()=>{try{localStorage.setItem(key,JSON.stringify(state))}catch{$('#notice').textContent='无法保存：请检查浏览器存储空间，及时导出备份。'}},daily=()=>state.daily[today()]||{new:0,review:0},goal=()=>Math.ceil(3500/state.days),due=()=>words.filter(w=>state.records[w.w]&&state.records[w.w].due<=today());
+const save=()=>{try{localStorage.setItem(key,JSON.stringify(state));window.dispatchEvent(new Event('wordgarden-progress'))}catch{$('#notice').textContent='无法保存：请检查浏览器存储空间，及时导出备份。'}},daily=()=>state.daily[today()]||{new:0,review:0},goal=()=>Math.ceil(3500/state.days),due=()=>words.filter(w=>state.records[w.w]&&state.records[w.w].due<=today());
 function render(){let n=Object.keys(state.records).length,d=daily();$('#learned').textContent=n;$('#percent').textContent=Math.round(n/3500*100)+'%';$('#bar').style.width=n/3500*100+'%';$('#newstat').textContent=`${d.new} / ${goal()}`;$('#duestat').textContent=due().length+' 词';$('#daysstat').textContent=Object.keys(state.daily).length+' 天';$('#heroCopy').textContent=`${state.days} 天学完 3500 词 · 每天约 ${goal()} 个新词`;$('#rhythm').textContent=`${state.days===90?'三个月冲刺':state.days===180?'半年加速':'一年稳步'} · 每天约 ${goal()} 个新词`;$('#reviewCount').textContent=`今天有 ${due().length} 个词等你复习`;$('#reviewStart').disabled=!due().length;document.querySelectorAll('[data-days]').forEach(b=>b.classList.toggle('selected',+b.dataset.days===state.days));renderTask();}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!==b.dataset.tab);document.querySelectorAll('nav button').forEach(n=>n.classList.toggle('active',n.dataset.tab===b.dataset.tab));if(b.dataset.tab==='library')list();render()});
 document.querySelectorAll('[data-days]').forEach(b=>b.onclick=()=>{state.days=+b.dataset.days;save();render()});
@@ -60,3 +60,13 @@ $('#autoSpeak').onchange=()=>{state.preferences={...(state.preferences||{}),auto
 $('#speechRate').onchange=()=>{state.preferences={...(state.preferences||{}),rate:+$('#speechRate').value};save()};
 
 document.querySelectorAll('[data-practice]').forEach(b=>b.onclick=()=>{const mode=b.dataset.practice;state.preferences={...(state.preferences||{}),practice:mode,roundSize:mode==='normal'?10:5,autoSpeak:mode!=='commute'};save();render()});
+
+window.WordGarden={
+ read:()=>JSON.parse(JSON.stringify(state)),
+ guest:()=>{try{return JSON.parse(localStorage.getItem('wordgarden-v1'))}catch{return null}},
+ switchUser:(id)=>{for(const d of document.querySelectorAll('dialog'))if(d.id!=='accountDialog'&&d.open)d.close();key=id?'wordgarden-user-'+id:'wordgarden-v1';let data;try{data=JSON.parse(localStorage.getItem(key))}catch{}state=validProgress(data)?data:{days:90,records:{},daily:{}};if(words.length)render()},
+ replace:(data)=>{if(!validProgress(data))throw Error('invalid_progress');state=JSON.parse(JSON.stringify(data));localStorage.setItem(key,JSON.stringify(state));if(words.length)render()},
+ valid:validProgress,
+ export:()=>$('#export').click()
+};
+function validProgress(s){return !!s&&[90,180,365].includes(s.days)&&!!s.records&&typeof s.records==='object'&&!Array.isArray(s.records)&&!!s.daily&&typeof s.daily==='object'&&!Array.isArray(s.daily)&&Object.entries(s.records).every(([w,r])=>/^[a-z]+$/.test(w)&&r&&Number.isInteger(r.stage)&&r.stage>=0&&r.stage<=4&&/^\d{4}-\d{2}-\d{2}$/.test(r.due))&&Object.entries(s.daily).every(([d,r])=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&r&&Number.isInteger(r.new)&&r.new>=0&&Number.isInteger(r.review)&&r.review>=0)}

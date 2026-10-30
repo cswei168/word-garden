@@ -1,0 +1,20 @@
+词光账号后台接入说明
+
+当前生产配置为空。邮箱登录不会发送邮件，不显示登录或同步成功。
+
+1. 在用户拥有的 Supabase 组织内选择或创建项目。不要为此在代码中填入管理员密钥。
+2. 在该项目 SQL editor 执行 setup.sql；或通过已连接的 Supabase 工具应用等效迁移。
+3. 开启 Email Auth。配置正式 SMTP 发送服务及其发件域名。不要把 SMTP 密码发到聊天或提交到 Git。
+   Supabase 默认测试发信服务有收件人和额度限制，不适合作为面向外部用户的正式邮件服务。
+4. 将 Email 的 Magic Link 模板改为包含验证码 {{ .Token }} 的邮件；本客户端采用验证码输入验证，不采用魔术链接回跳。
+5. Auth Site URL 配置为 https://cswei168.github.io/word-garden/ 。设置合理的验证码有效期与发信限流。
+6. auth-config.js 只填写公开项目 URL 和 publishable/anon key。禁止填写 service_role 或 secret key。
+7. 验证两个真实邮箱：无效/过期码、登录、退出、A/B 账户隔离、同步、断网重连、冲突处理、删除账号。
+8. 使用真实用户JWT验证数据库权限：匿名无法读取；A无法读写B；过期revision返回空数组，不覆盖数据。
+9. 验证成功后更新 privacy.html，写明实际服务商、运营主体及联系渠道；明确邮件与学习数据处理方式。
+10. 修改 sw.js 中的缓存版本，推送 GitHub Pages，验证线上缓存更新流程。
+
+数据表：public.learning_progress，主键为 auth.users.id。
+客户端通过 save_learning_progress(expected_revision,new_payload) 原子保存。
+退出保留各账号本机数据；删除账号清除此设备该账号数据和 auth.users 记录，外键级联删除云端进度。
+用户可随时从学习计划导出本机JSON备份。其他设备离线缓存无法被远程清除。
